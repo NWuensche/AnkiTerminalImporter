@@ -17,6 +17,9 @@ def getAbsPathFile(f):
         sys.exit(1)
     return absPath
 
+def getNumLinesFile(f):
+    return sum(1 for line in open(f))
+
 def openDB():
     home = os.path.expanduser("~")
     dbPath=home + "/.local/share/Anki2/User 1/collection.anki2" #TODO Do this using ProfileManager.collectionPath
@@ -52,15 +55,15 @@ def selectDeck(col, absPath, im):
     col.decks.select(deckID)
     im.model['did'] = deckID
 
-def checkAllNewAdded(im):
+def checkAllNewAdded(im, fileLen):
     #Get Numbers of how many cards where new, updated or unchanged
     (new, update, unchanged) = map(int, re.compile('\d+').findall(str(im.log)))
     # Not everything was added
-    if (new, update, unchanged) != (new, 0, 0):
+    if (new, update, unchanged) != (fileLen, 0, 0):
         print("Something was not added as new")
         sys.exit(1)
 
-def importFileInto(col, absPath):
+def importFileInto(col, absPath, fileLen):
     im = TextImporter(col, absPath)
     im.initMapping() #Needed to assert NoteImpoter Line 65 self.mapping correctly
     im.importMode = 1 #Default =0, Ignore on first field equal
@@ -70,16 +73,19 @@ def importFileInto(col, absPath):
     im.run()
     im.col.save() #Needed as flush
 
-    checkAllNewAdded(im)
+    checkAllNewAdded(im, fileLen)
 
 def main():
     if len(sys.argv) != 2:
         print("Usage: importAnki FILE")
         sys.exit(1)
 
-    absPath = getAbsPathFile(sys.argv[1])
+    path = sys.argv[1]
+    absPath = getAbsPathFile(path)
+    fileLen = getNumLinesFile(absPath)
+
     col=openDB()
-    importFileInto(col, absPath)
+    importFileInto(col, absPath, fileLen)
 
 if __name__ == "__main__":
     main()
